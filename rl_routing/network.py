@@ -3,6 +3,9 @@ import matplotlib.pyplot as plt
 import random
 import uuid
 from collections import defaultdict
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+from matplotlib.figure import Figure
+import numpy as np
 
 FREE = 0
 OCCUPIED = 1
@@ -16,12 +19,19 @@ class Packet():
         self.to = to
         self.path = list(reversed(path))
 
-    def next_hop(self):
+    def on_wire(self):
+        return isinstance(self.current, tuple)
+
+    def find_next_hop(self):
         return self.path[-1]
 
     def hop(self, target):
-        self.current = target
+        self.current = (self.current, target)
         self.path.pop()
+
+    def continue_on_wire(self):
+        f, t = self.current
+        self.current = t
 
     def done(self):
         return self.current == self.to
@@ -33,6 +43,9 @@ class NetworkEnv():
         self.graph = graph
         self.packets = {}
         self.completed_packets = 0
+
+        self.fig = Figure()
+        self.canvas = FigureCanvas(self.fig)
 
         nx.set_node_attributes(self.graph, {})
 
@@ -54,36 +67,59 @@ class NetworkEnv():
                 continue
             self.packets[p.id] = p
 
-    def render(self):
-        pos = nx.get_node_attributes(self.graph, 'pos')
-        node_color = [FREE for _ in range(self.nodes)]
-        for packet in self.packets.values():
-            node_color[packet.current] = OCCUPIED
+    def render(self, mode="rgb"):
+        if mode == "rgb":
+            pos = nx.get_node_attributes(self.graph, 'pos')
+            occupied = {v.current: True for v in self.packets.values()}
 
-        options = {
-            "node_color": node_color,
-            "cmap": plt.get_cmap('coolwarm'),
-        }
-        nx.draw(self.graph, pos, **options)
+            node_color = [
+                OCCUPIED if index in occupied else FREE for index in range(self.nodes)]
+            edge_color = [OCCUPIED if (u, v) in occupied else FREE for (
+                u, v) in self.graph.edges()]
+            edge_weight = [3 if (u, v) in occupied else 1 for (
+                u, v) in self.graph.edges()]
+
+            options = {
+                "node_color": node_color,
+                "cmap": plt.get_cmap('coolwarm'),
+                "edge_color": edge_color,
+                "edge_cmap": plt.get_cmap('coolwarm'),
+                "width": edge_weight,
+            }
+            ax = self.fig.gca()
+            nx.draw(self.graph, pos, ax=ax, **options)
+            self.canvas.draw()
+            s, (width, height) = self.canvas.print_to_buffer()
+            return np.fromstring(s, np.uint8).reshape((height, width, 4))
 
     def done(self):
         return len(self.packets.keys()) == 0
 
     def step(self):
         wires = defaultdict(lambda: defaultdict(lambda: False))
+        for packet in self.packets.values():
+            if isinstance(packet.current, tuple):
+                f, t = packet.current
+                wires[f][t] = True
 
         for packet_key in list(self.packets.keys()):
             if packet_key not in self.packets:
                 continue
             packet = self.packets[packet_key]
+
+            # check if on wire
+            if packet.on_wire():
+                packet.continue_on_wire()
+                if packet.done():
+                    del self.packets[packet.id]
+                    self.completed_packets += 1
+                continue
+
             cur = packet.current
-            n = packet.next_hop()
+            n = packet.find_next_hop()
             if wires[cur][n]:
                 continue
 
             wires[cur][n] = True
 
             packet.hop(n)
-            if packet.done():
-                del self.packets[packet.id]
-                self.completed_packets += 1
