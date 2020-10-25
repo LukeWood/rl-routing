@@ -83,7 +83,7 @@ class NetworkEnv():
     def done(self):
         return len(self.packets.keys()) == 0
 
-    def step(self):
+    def step(self, inputs):
         wires = defaultdict(lambda: defaultdict(lambda: False))
         just_completed = []
 
@@ -97,33 +97,41 @@ class NetworkEnv():
             if packet_key not in self.packets:
                 continue
             packet = self.packets[packet_key]
+            continue_check = False
 
             # check if on wire
             if packet.on_wire():
-                packet.continue_on_wire()
-                if packet.done():
-                    just_completed.append(packet.to)
-                    del self.packets[packet.id]
-                    reward += 1
+                packet.continue_on_wire(self.graph)
+                continue_check = True
+
+            if packet.done():
+                just_completed.append(packet.to)
+                del self.packets[packet.id]
+                reward += 1
+                continue_check = True
+
+            if continue_check:
                 continue
 
             cur = packet.current
-            n = packet.find_next_hop()
+            to = packet.to
+            n = inputs[cur][to]
+            if n == -1:
+                continue
+            if not self.graph.has_edge(cur, n):
+                # refuse to route invalid paths
+                continue
             if wires[cur][n]:
                 continue
 
             wires[cur][n] = True
 
-            packet.hop(n)
+            packet.hop(n, self.graph)
 
         self.just_completed = just_completed
         self.completed_packets += reward
 
-        info = defaultdict(dict)
-        for packet in self.packets.values():
-            if isinstance(packet.current, tuple):
-                continue
-            info[packet.current][packet.to] = packet.next_hop()
+        info = {}
         return self.create_observation(), reward, self.done(), info
 
     def create_observation(self):
@@ -131,19 +139,19 @@ class NetworkEnv():
         adj_matrix = np.array(nx.adjacency_matrix(self.graph).todense())
         wires = np.zeros((self.nodes, self.nodes))
         packets = np.zeros((self.nodes, self.nodes))
-        packets_targets = np.zeros((self.nodes, self.nodes))
+        routes = defaultdict(dict)
 
-        # create packet state
         packets_vals = self.packets.values()
-
         for i, packet in enumerate(packets_vals):
             val = (i+1)/len(packets_vals)
             if isinstance(packet.current, tuple):
                 f, t = packet.current
                 wires[f][t] = 1.0
+                continue
+            elif packet.done():
+                continue
             else:
+                routes[packet.current][packet.to] = packet.find_next_hop()
                 packets[packet.current][packet.to] = val
-                # Explicity include targets
-                packets_targets[packet.current][packet.to] = 1.0
 
-        return np.stack([adj_matrix, wires, packets, packets_targets], axis=0)
+        return (adj_matrix, wires, packets, routes)

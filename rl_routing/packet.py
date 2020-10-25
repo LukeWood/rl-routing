@@ -1,4 +1,5 @@
 import uuid
+import networkx as nx
 
 
 class Packet():
@@ -7,19 +8,21 @@ class Packet():
         self.current = sender
         self.sender = sender
         self.to = to
-        self.path = list(reversed(path))
+        self.path = path
 
     def on_wire(self):
         return isinstance(self.current, tuple)
 
     def find_next_hop(self):
-        return self.path[-1]
+        if len(self.path) < 2:
+            return -1
+        return self.path[1]
 
-    def hop(self, target):
+    def hop(self, target, graph):
         self.current = (self.current, target)
-        self.path.pop()
+        self.path = nx.shortest_path(graph, target, self.to)
 
-    def continue_on_wire(self):
+    def continue_on_wire(self, graph):
         f, t = self.current
         self.current = t
 
