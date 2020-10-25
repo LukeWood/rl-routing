@@ -70,13 +70,20 @@ class NetworkEnv():
     def render(self, mode="rgb"):
         if mode == "rgb":
             pos = nx.get_node_attributes(self.graph, 'pos')
-            occupied = {v.current: True for v in self.packets.values()}
+            occupied = {}
+            for packet in self.packets.values():
+                if isinstance(packet.current, tuple):
+                    f, t = packet.current
+                    occupied[(f, t)] = True
+                    occupied[(t, f)] = True
+                else:
+                    occupied[packet.current] = True
 
             node_color = [
                 OCCUPIED if index in occupied else FREE for index in range(self.nodes)]
             edge_color = [OCCUPIED if (u, v) in occupied else FREE for (
                 u, v) in self.graph.edges()]
-            edge_weight = [3 if (u, v) in occupied else 1 for (
+            edge_weight = [3 if (u, v) in occupied else 3 for (
                 u, v) in self.graph.edges()]
 
             options = {
