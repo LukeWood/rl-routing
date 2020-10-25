@@ -118,16 +118,24 @@ class NetworkEnv():
 
         self.just_completed = just_completed
         self.completed_packets += reward
-        return self.create_observation(), reward, self.done(), {}
+
+        info = defaultdict(dict)
+        for packet in self.packets.values():
+            if isinstance(packet.current, tuple):
+                continue
+            info[packet.current][packet.to] = packet.next_hop()
+        return self.create_observation(), reward, self.done(), info
 
     def create_observation(self):
         # create one hot adjacency matrix
         adj_matrix = np.array(nx.adjacency_matrix(self.graph).todense())
         wires = np.zeros((self.nodes, self.nodes))
         packets = np.zeros((self.nodes, self.nodes))
+        packets_targets = np.zeros((self.nodes, self.nodes))
 
         # create packet state
         packets_vals = self.packets.values()
+
         for i, packet in enumerate(packets_vals):
             val = (i+1)/len(packets_vals)
             if isinstance(packet.current, tuple):
@@ -135,5 +143,7 @@ class NetworkEnv():
                 wires[f][t] = 1.0
             else:
                 packets[packet.current][packet.to] = val
+                # Explicity include targets
+                packets_targets[packet.current][packet.to] = 1.0
 
-        return np.stack([adj_matrix, wires, packets], axis=0)
+        return np.stack([adj_matrix, wires, packets, packets_targets], axis=0)
