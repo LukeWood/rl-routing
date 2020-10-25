@@ -38,13 +38,15 @@ class Packet():
 
 
 class NetworkEnv():
-    def __init__(self, graph=None):
+    def __init__(self, fig=None, graph=None):
         self.nodes = len(graph.nodes)
         self.graph = graph
         self.packets = {}
         self.completed_packets = 0
 
-        self.fig = Figure()
+        self.fig = fig
+        if self.fig is None:
+            self.fig = Figure(figsize=(8, 8))
         self.canvas = FigureCanvas(self.fig)
 
         nx.set_node_attributes(self.graph, {})
@@ -80,11 +82,12 @@ class NetworkEnv():
                     occupied[packet.current] = True
 
             node_color = [
-                OCCUPIED if index in occupied else FREE for index in range(self.nodes)]
+                OCCUPIED if index in occupied else FREE
+                for index in range(self.nodes)
+            ]
             edge_color = [OCCUPIED if (u, v) in occupied else FREE for (
                 u, v) in self.graph.edges()]
-            edge_weight = [3 if (u, v) in occupied else 3 for (
-                u, v) in self.graph.edges()]
+            edge_weight = [3 for (u, v) in self.graph.edges()]
 
             options = {
                 "node_color": node_color,
@@ -98,6 +101,7 @@ class NetworkEnv():
             self.canvas.draw()
             s, (width, height) = self.canvas.print_to_buffer()
             return np.fromstring(s, np.uint8).reshape((height, width, 4))
+        raise f"Mode {mode} not supported."
 
     def done(self):
         return len(self.packets.keys()) == 0
