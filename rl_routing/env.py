@@ -1,47 +1,23 @@
 import networkx as nx
-import matplotlib.pyplot as plt
 import random
-import uuid
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 import numpy as np
 
-FREE = 0
-OCCUPIED = 1
+from .packet import Packet
 
-
-class Packet():
-    def __init__(self, sender, to, path=[]):
-        self.id = str(uuid.uuid4())
-        self.current = sender
-        self.sender = sender
-        self.to = to
-        self.path = list(reversed(path))
-
-    def on_wire(self):
-        return isinstance(self.current, tuple)
-
-    def find_next_hop(self):
-        return self.path[-1]
-
-    def hop(self, target):
-        self.current = (self.current, target)
-        self.path.pop()
-
-    def continue_on_wire(self):
-        f, t = self.current
-        self.current = t
-
-    def done(self):
-        return self.current == self.to
+FREE = "blue"
+OCCUPIED = "red"
+JUST_COMPLETE = "lawngreen"
 
 
 class NetworkEnv():
     def __init__(self, fig=None, graph=None):
         self.nodes = len(graph.nodes)
         self.graph = graph
-        self.packets = {}
+        self.packets = OrderedDict()
+        self.just_completed = []
         self.completed_packets = 0
 
         self.fig = fig
@@ -85,15 +61,16 @@ class NetworkEnv():
                 OCCUPIED if index in occupied else FREE
                 for index in range(self.nodes)
             ]
+            for nid in self.just_completed:
+                node_color[nid] = JUST_COMPLETE
+
             edge_color = [OCCUPIED if (u, v) in occupied else FREE for (
                 u, v) in self.graph.edges()]
             edge_weight = [3 for (u, v) in self.graph.edges()]
 
             options = {
                 "node_color": node_color,
-                "cmap": plt.get_cmap('coolwarm'),
                 "edge_color": edge_color,
-                "edge_cmap": plt.get_cmap('coolwarm'),
                 "width": edge_weight,
             }
             ax = self.fig.gca()
@@ -108,6 +85,9 @@ class NetworkEnv():
 
     def step(self):
         wires = defaultdict(lambda: defaultdict(lambda: False))
+        just_completed = []
+
+        reward = 0
         for packet in self.packets.values():
             if isinstance(packet.current, tuple):
                 f, t = packet.current
@@ -122,8 +102,9 @@ class NetworkEnv():
             if packet.on_wire():
                 packet.continue_on_wire()
                 if packet.done():
+                    just_completed.append(packet.to)
                     del self.packets[packet.id]
-                    self.completed_packets += 1
+                    reward += 1
                 continue
 
             cur = packet.current
@@ -134,3 +115,25 @@ class NetworkEnv():
             wires[cur][n] = True
 
             packet.hop(n)
+
+        self.just_completed = just_completed
+        self.completed_packets += reward
+        return self.create_observation(), reward, self.done(), {}
+
+    def create_observation(self):
+        # create one hot adjacency matrix
+        adj_matrix = np.array(nx.adjacency_matrix(self.graph).todense())
+        wires = np.zeros((self.nodes, self.nodes))
+        packets = np.zeros((self.nodes, self.nodes))
+
+        # create packet state
+        packets_vals = self.packets.values()
+        for i, packet in enumerate(packets_vals):
+            val = (i+1)/len(packets_vals)
+            if isinstance(packet.current, tuple):
+                f, t = packet.current
+                wires[f][t] = 1.0
+            else:
+                packets[packet.current][packet.to] = val
+
+        return np.stack([adj_matrix, wires, packets], axis=0)
