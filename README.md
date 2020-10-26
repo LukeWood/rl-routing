@@ -18,7 +18,6 @@ e.x.
 G=nx.random_internet_as_graph(100)
 pos = nx.spring_layout(G)
 nx.set_node_attributes(G, pos, "pos")
-nx.draw(G)
 env = NetworkEnv(graph=G)
 ```
 
