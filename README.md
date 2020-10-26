@@ -36,11 +36,14 @@ The easiest way to get started using rl-routing is to open up the
 [Shortest Path Base Case in Colab](http://colab.research.google.com/github/LukeWood/rl-routing/blob/master/notebooks/shortest-path-agent.ipynb).  This base case runs you through processing observations, setting up the environment, and creating a shortest path agent.
 
 ## Citation
+Please cite any usage of this repo in research.
+
+bibtex entry:
 ```bibtex
 @misc{lukewood_2020, 
-  title={rl-routing},
+  title={RL Routing},
   url={https://github.com/lukewood/rl-routing},
-  publisher={Luke Wood},
+  publisher={Github},
   author={LukeWood},
   year={2020},
   month={Oct}
