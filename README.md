@@ -2,7 +2,9 @@
 RL-routing provides a reinforcement learning environment for routing.
 
 <p align="center">
+<kbd>
  <img width="312" height="auto" src="./media/routing.gif">
+ </kbd>
 </p>
 
 ## Getting Started
