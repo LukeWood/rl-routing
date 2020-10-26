@@ -27,15 +27,10 @@ class NetworkEnv():
 
         nx.set_node_attributes(self.graph, {})
 
-    def generate_packet(self, generate_path=True):
+    def generate_packet(self):
         sender = random.choice(range(self.nodes))
         to = random.choice(range(self.nodes))
-        path = []
-        if generate_path:
-            try:
-                path = nx.shortest_path(self.graph, sender, to)
-            except (nx.exception.NetworkXNoPath):
-                return None
+        path = nx.shortest_path(self.graph, sender, to)
         return Packet(sender, to, path=path)
 
     def create_packets(self, n=10):
@@ -133,6 +128,11 @@ class NetworkEnv():
 
         info = {}
         return self.create_observation(), reward, self.done(), info
+
+    def reset(self, initial_packets=1):
+        self.packets = OrderedDict()
+        self.create_packets(initial_packets)
+        return self.create_observation()
 
     def create_observation(self):
         # create one hot adjacency matrix
