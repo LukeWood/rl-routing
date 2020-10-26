@@ -34,3 +34,15 @@ The visualization uses `red` to indicate that a node or edge is occupied by a pa
 ## Quickstart
 The easiest way to get started using rl-routing is to open up the 
 [Shortest Path Base Case in Colab](http://colab.research.google.com/github/LukeWood/rl-routing/blob/master/notebooks/shortest-path-agent.ipynb).  This base case runs you through processing observations, setting up the environment, and creating a shortest path agent.
+
+## Citation
+```bibtex
+@misc{lukewood_2020, 
+  title={rl-routing},
+  url={https://github.com/lukewood/rl-routing},
+  publisher={Luke Wood},
+  author={LukeWood},
+  year={2020},
+  month={Oct}
+} 
+```
