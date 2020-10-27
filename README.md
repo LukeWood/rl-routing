@@ -9,7 +9,7 @@
 
 RL-routing provides a reinforcement learning environment for routing problems.
 The environment relies on an underlying [networkx](https://networkx.org) graph.
-This is passed to the environment during construction as `graph`.  
+This is passed to the environment during construction under the keyword argument `graph`.  
 It is recommended to set `pos` for the nodes to ensure consistent rendering.
 `spring_layout` provides a simple api to do this.
 
