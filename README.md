@@ -7,7 +7,7 @@
  </kbd>
 </p>
 
-RL-routing provides a reinforcement learning environment for routing problems.
+RL-routing provides a bandit style environment for routing problems.
 The environment relies on an underlying [networkx](https://networkx.org) graph.
 This is passed to the environment during construction under the keyword argument `graph`.  
 It is recommended to set `pos` for the nodes to ensure consistent rendering.
@@ -29,6 +29,11 @@ The environment follows a simple set of rules:
 The environment renders to an rgb array.
 This allows it to be rendered to a matplotlib.pyplot plot, an output gif, or any other format desired.
 The visualization uses `red` to indicate that a node or edge is occupied by a packet, `blue` to show that an edge or node is vacant, or `green` to show that a packet was successfully routed.
+
+## Roadmap
+- implement preprocessing for multi-agent
+- notebook for simple bayesian model on tiny hand crafted network 
+- implement preprocessing for SDN routing
 
 ## Quickstart
 The easiest way to get started using rl-routing is to open up the 
