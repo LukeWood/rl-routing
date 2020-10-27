@@ -1,4 +1,4 @@
-# RL Routing
+# RL Routing Env
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](http://colab.research.google.com/github/LukeWood/rl-routing/blob/master/notebooks/shortest-path-agent.ipynb)
 
 <p align="center">
